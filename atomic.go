@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 // WriteFile atomically writes the contents of r to the specified filepath.  If
