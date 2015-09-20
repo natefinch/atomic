@@ -35,18 +35,21 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	if _, err := io.Copy(f, r); err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
 	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("can't close tempfile %q: %v", name, err)
+	}
 
 	// get the file mode from the original file and use that for the replacement
 	// file, too.
 	info, err := os.Stat(filename)
-	if err != nil {
+	if os.IsNotExist(err) {
+		// no original file
+	} else if err != nil {
 		return err
-	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("can't close tempfile %q: %v", name, err)
-	}
-	if err := os.Chmod(name, info.Mode()); err != nil {
-		return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
+	} else {
+		if err := os.Chmod(name, info.Mode()); err != nil {
+			return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
+		}
 	}
 	if err := ReplaceFile(name, filename); err != nil {
 		return fmt.Errorf("cannot replace %q with tempfile %q: %v", filename, name, err)
