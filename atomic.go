@@ -41,14 +41,21 @@ func WriteFile(filename string, r io.Reader) (err error) {
 
 	// get the file mode from the original file and use that for the replacement
 	// file, too.
-	info, err := os.Stat(filename)
+	destInfo, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		// no original file
 	} else if err != nil {
 		return err
 	} else {
-		if err := os.Chmod(name, info.Mode()); err != nil {
-			return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
+		sourceInfo, err := os.Stat(name)
+		if err != nil {
+			return err
+		}
+
+		if sourceInfo.Mode() != destInfo.Mode() {
+			if err := os.Chmod(name, destInfo.Mode()); err != nil {
+				return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
+			}
 		}
 	}
 	if err := ReplaceFile(name, filename); err != nil {
