@@ -35,6 +35,10 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	if _, err := io.Copy(f, r); err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
 	}
+	// fsync is important, otherwise os.Rename could rename a zero-length file
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("can't flush tempfile %q: %v", name, err)
+	}
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
 	}
