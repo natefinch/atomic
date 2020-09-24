@@ -14,7 +14,7 @@ import (
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
 // is unmodified).
-func WriteFile(filename string, r io.Reader) (err error) {
+func WriteFile(filename string, r io.Reader, mode ...os.FileMode) (err error) {
 	// write to a temp file first, then we'll atomically replace the target file
 	// with the temp file.
 	dir, file := filepath.Split(filename)
@@ -38,6 +38,11 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	name := f.Name()
 	if _, err := io.Copy(f, r); err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
+	}
+	if len(mode) > 0 {
+		if err := f.Chmod(mode[0]); err != nil {
+			return fmt.Errorf("cannot change file mode %q: %v", name, err);
+		}
 	}
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
