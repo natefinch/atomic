@@ -13,8 +13,10 @@ import (
 // an error occurs, the target file is guaranteed to be either fully written, or
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
-// is unmodified).
-func WriteFile(filename string, r io.Reader) (err error) {
+// is unmodified). Permissions are copied from an existing file or the optional
+// default file mode that can be given to be used instead of the default `0600`
+// from ioutil.TempFile().
+func WriteFile(filename string, r io.Reader, mode ...os.FileMode) (err error) {
 	// write to a temp file first, then we'll atomically replace the target file
 	// with the temp file.
 	dir, file := filepath.Split(filename)
@@ -38,6 +40,12 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	name := f.Name()
 	if _, err := io.Copy(f, r); err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
+	}
+	// when optional mode was given change default mode of temp file.
+	if len(mode) > 0 {
+		if err := f.Chmod(mode[0]); err != nil {
+			return fmt.Errorf("cannot change file mode %q: %v", name, err);
+		}
 	}
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
