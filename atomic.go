@@ -13,7 +13,9 @@ import (
 // an error occurs, the target file is guaranteed to be either fully written, or
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
-// is unmodified).
+// is unmodified). Permissions are copied from an existing file or the optional
+// default file mode that can be given to be used instead of the default `0600`
+// from ioutil.TempFile().
 func WriteFile(filename string, r io.Reader, mode ...os.FileMode) (err error) {
 	// write to a temp file first, then we'll atomically replace the target file
 	// with the temp file.
