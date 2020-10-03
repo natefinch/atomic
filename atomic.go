@@ -39,6 +39,7 @@ func WriteFile(filename string, r io.Reader, mode ...os.FileMode) (err error) {
 	if _, err := io.Copy(f, r); err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
 	}
+	// when optional mode was given change default mode of temp file.
 	if len(mode) > 0 {
 		if err := f.Chmod(mode[0]); err != nil {
 			return fmt.Errorf("cannot change file mode %q: %v", name, err);
