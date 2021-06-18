@@ -39,6 +39,9 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	if _, err := io.Copy(f, r); err != nil {
 		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
 	}
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("can't sync tempfile %q: %v", name, err)
+	}
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
 	}
