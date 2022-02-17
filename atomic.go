@@ -14,7 +14,7 @@ import (
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
 // is unmodified).
-func WriteFile(filename string, r io.Reader) (err error) {
+func WriteFile(filename string, r io.Reader) (res *AtomicResult) {
 	// write to a temp file first, then we'll atomically replace the target file
 	// with the temp file.
 	dir, file := filepath.Split(filename)
@@ -24,7 +24,7 @@ func WriteFile(filename string, r io.Reader) (err error) {
 
 	f, err := ioutil.TempFile(dir, file)
 	if err != nil {
-		return fmt.Errorf("cannot create temp file: %v", err)
+		return NewAtomicError(fmt.Sprintf("cannot create temp file: %v", err), "")
 	}
 	defer func() {
 		if err != nil {
@@ -37,14 +37,14 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	defer f.Close()
 	name := f.Name()
 	if _, err := io.Copy(f, r); err != nil {
-		return fmt.Errorf("cannot write data to tempfile %q: %v", name, err)
+		return NewAtomicError(fmt.Sprintf("cannot write data to temp file %q: %v", name, err), name)
 	}
 	// fsync is important, otherwise os.Rename could rename a zero-length file
 	if err := f.Sync(); err != nil {
-		return fmt.Errorf("can't flush tempfile %q: %v", name, err)
+		return NewAtomicError(fmt.Sprintf("cannot flush temp file %q: %v", name, err), name)
 	}
 	if err := f.Close(); err != nil {
-		return fmt.Errorf("can't close tempfile %q: %v", name, err)
+		return NewAtomicError(fmt.Sprintf("cannot close temp file %q: %v", name, err), name)
 	}
 
 	// get the file mode from the original file and use that for the replacement
@@ -53,21 +53,22 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	if os.IsNotExist(err) {
 		// no original file
 	} else if err != nil {
-		return err
+		return NewAtomicError(fmt.Sprintf("cannot get permissions info from original file %q: %v", filename, err), name)
 	} else {
 		sourceInfo, err := os.Stat(name)
 		if err != nil {
-			return err
+			return NewAtomicError(fmt.Sprintf("cannot get permissions info from temp file %q: %v", name, err), name)
 		}
 
 		if sourceInfo.Mode() != destInfo.Mode() {
 			if err := os.Chmod(name, destInfo.Mode()); err != nil {
-				return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
+				return NewAtomicError(fmt.Sprintf("cannot set filemode of temp file %q: %v", name, err), name)
 			}
 		}
 	}
 	if err := ReplaceFile(name, filename); err != nil {
-		return fmt.Errorf("cannot replace %q with tempfile %q: %v", filename, name, err)
+		return NewAtomicError(fmt.Sprintf("cannot replace file %q with temp file %q: %v", filename, name, err), name)
 	}
-	return nil
+
+	return NewAtomicResult(name)
 }
