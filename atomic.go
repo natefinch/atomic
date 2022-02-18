@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"io/fs"
 	"os"
 	"path/filepath"
 )
 
 type FileOptions struct {
-	mode fs.FileMode
+	mode os.FileMode
 }
 
 type Option func(*FileOptions)
 
 // FileMode can be given as an argument to `WriteFile()` to change the default
 // file mode from the default value of ioutil.TempFile() (`0600`).
-func FileMode(mode fs.FileMode) Option {
+func FileMode(mode os.FileMode) Option {
 	return func(opts *FileOptions) {
 		opts.mode = mode
 	}
