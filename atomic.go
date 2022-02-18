@@ -16,6 +16,8 @@ type FileOptions struct {
 
 type Option func(*FileOptions)
 
+// FileMode can be given as an argument to `WriteFile()` to change the default
+// file mode from the default value of ioutil.TempFile() (`0600`).
 func FileMode(mode fs.FileMode) Option {
 	return func(opts *FileOptions) {
 		opts.mode = mode
