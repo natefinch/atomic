@@ -9,12 +9,33 @@ import (
 	"path/filepath"
 )
 
+type FileOptions struct {
+	defaultMode os.FileMode
+}
+
+type Option func(*FileOptions)
+
+// FileMode can be given as an argument to `WriteFile()` to change the default
+// file mode from the default value of ioutil.TempFile() (`0600`).
+func DefaultFileMode(mode os.FileMode) Option {
+	return func(opts *FileOptions) {
+		opts.defaultMode = mode
+	}
+}
+
 // WriteFile atomically writes the contents of r to the specified filepath.  If
 // an error occurs, the target file is guaranteed to be either fully written, or
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
-// is unmodified).
-func WriteFile(filename string, r io.Reader) (err error) {
+// is unmodified).  Permissions are copied from an existing file or the
+// DefaultFileMode option can be given to be used instead of the default `0600`
+// from ioutil.TempFile().
+func WriteFile(filename string, r io.Reader, opts ...Option) (err error) {
+	fopts := &FileOptions{}
+	for _, opt := range opts {
+		opt(fopts)
+	}
+
 	// write to a temp file first, then we'll atomically replace the target file
 	// with the temp file.
 	dir, file := filepath.Split(filename)
@@ -42,6 +63,12 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	// fsync is important, otherwise os.Rename could rename a zero-length file
 	if err := f.Sync(); err != nil {
 		return fmt.Errorf("can't flush tempfile %q: %v", name, err)
+	}
+	// when optional mode was given change default mode of temp file.
+	if fopts.defaultMode != 0 {
+		if err := f.Chmod(fopts.defaultMode); err != nil {
+			return fmt.Errorf("cannot change file mode %q: %v", name, err)
+		}
 	}
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
