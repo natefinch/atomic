@@ -27,9 +27,9 @@ func DefaultFileMode(mode os.FileMode) Option {
 // an error occurs, the target file is guaranteed to be either fully written, or
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
-// is unmodified).  Permissions are copied from an existing file or the FileMode
-// option can be given to be used instead of the default `0600` from
-// ioutil.TempFile().
+// is unmodified).  Permissions are copied from an existing file or the
+// DefaultFileMode option can be given to be used instead of the default `0600`
+// from ioutil.TempFile().
 func WriteFile(filename string, r io.Reader, opts ...Option) (err error) {
 	fopts := &FileOptions{}
 	for _, opt := range opts {
