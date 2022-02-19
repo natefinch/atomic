@@ -43,6 +43,11 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	if err := f.Sync(); err != nil {
 		return fmt.Errorf("can't flush tempfile %q: %v", name, err)
 	}
+	// get file info via file descriptor before closing it.
+	sourceInfo, err := f.Stat()
+	if err != nil {
+		return err
+	}
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
 	}
@@ -50,20 +55,13 @@ func WriteFile(filename string, r io.Reader) (err error) {
 	// get the file mode from the original file and use that for the replacement
 	// file, too.
 	destInfo, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		// no original file
-	} else if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return err
-	} else {
-		sourceInfo, err := os.Stat(name)
-		if err != nil {
-			return err
-		}
-
-		if sourceInfo.Mode() != destInfo.Mode() {
-			if err := os.Chmod(name, destInfo.Mode()); err != nil {
-				return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
-			}
+	}
+	// check for nil as one error type is allowed to happen.
+	if destInfo != nil && destInfo.Mode() != sourceInfo.Mode() {
+		if err := os.Chmod(name, destInfo.Mode()); err != nil {
+			return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
 		}
 	}
 	if err := ReplaceFile(name, filename); err != nil {
