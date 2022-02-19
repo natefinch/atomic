@@ -36,4 +36,18 @@ func TestWriteDefaultFileMode(t *testing.T) {
 	if fi.Mode() != 0644 {
 		t.Errorf("File mode not correct")
 	}
+	// check if file mode is preserved
+	if err := os.Chmod(file, 0600); err != nil {
+		t.Errorf("Failed to change file mode: %q: %v", file, err)
+	}
+	if err := WriteFile(file, content, DefaultFileMode(0644)); err != nil {
+		t.Errorf("Failed to write file: %q: %v", file, err)
+	}
+	fi, err = os.Stat(file)
+	if err != nil {
+		t.Errorf("Failed to stat file: %q: %v", file, err)
+	}
+	if fi.Mode() != 0600 {
+		t.Errorf("File mode not correct")
+	}
 }
