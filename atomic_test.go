@@ -22,11 +22,11 @@ func TestWriteFile(t *testing.T) {
 	}
 }
 
-func TestWriteFileMode(t *testing.T) {
+func TestWriteDefaultFileMode(t *testing.T) {
 	file := "bar.txt"
 	content := bytes.NewBufferString("bar")
 	defer func() { _ = os.Remove(file) }()
-	if err := WriteFile(file, content, FileMode(0644)); err != nil {
+	if err := WriteFile(file, content, DefaultFileMode(0644)); err != nil {
 		t.Errorf("Failed to write file: %q: %v", file, err)
 	}
 	fi, err := os.Stat(file)

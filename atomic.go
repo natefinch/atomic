@@ -10,16 +10,16 @@ import (
 )
 
 type FileOptions struct {
-	mode os.FileMode
+	defaultMode os.FileMode
 }
 
 type Option func(*FileOptions)
 
 // FileMode can be given as an argument to `WriteFile()` to change the default
 // file mode from the default value of ioutil.TempFile() (`0600`).
-func FileMode(mode os.FileMode) Option {
+func DefaultFileMode(mode os.FileMode) Option {
 	return func(opts *FileOptions) {
-		opts.mode = mode
+		opts.defaultMode = mode
 	}
 }
 
@@ -65,9 +65,9 @@ func WriteFile(filename string, r io.Reader, opts ...Option) (err error) {
 		return fmt.Errorf("can't flush tempfile %q: %v", name, err)
 	}
 	// when optional mode was given change default mode of temp file.
-	if fopts.mode != 0 {
-		if err := f.Chmod(fopts.mode); err != nil {
-			return fmt.Errorf("cannot change file mode %q: %v", name, err);
+	if fopts.defaultMode != 0 {
+		if err := f.Chmod(fopts.defaultMode); err != nil {
+			return fmt.Errorf("cannot change file mode %q: %v", name, err)
 		}
 	}
 	if err := f.Close(); err != nil {
