@@ -9,12 +9,52 @@ import (
 	"path/filepath"
 )
 
+type FileOptions struct {
+	defaultFileMode os.FileMode
+	fileMode        os.FileMode
+	keepFileMode    bool
+}
+
+type Option func(*FileOptions)
+
+// FileMode can be given as an argument to `WriteFile()` to change the file
+// mode to the desired value.
+func FileMode(mode os.FileMode) Option {
+	return func(opts *FileOptions) {
+		opts.fileMode = mode
+	}
+}
+
+// DefaultFileMode can be given as an argument to `WriteFile()` to change the
+// file mode from the default value of ioutil.TempFile() (`0600`).
+func DefaultFileMode(mode os.FileMode) Option {
+	return func(opts *FileOptions) {
+		opts.defaultFileMode = mode
+	}
+}
+
+// KeepFileMode() can be given as an argument to `WriteFile()` to keep the file
+// mode of an existing file instead of using the default value.
+func KeepFileMode(keep bool) Option {
+	return func(opts *FileOptions) {
+		opts.keepFileMode = keep
+	}
+}
+
 // WriteFile atomically writes the contents of r to the specified filepath.  If
 // an error occurs, the target file is guaranteed to be either fully written, or
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
 // is unmodified).
-func WriteFile(filename string, r io.Reader) (err error) {
+func WriteFile(filename string, r io.Reader, opts ...Option) (err error) {
+	// original behaviour is to preserve the mode of an existing file.
+	fopts := &FileOptions{
+		keepFileMode: true,
+	}
+	for _, opt := range opts {
+		opt(fopts)
+	}
+
 	// write to a temp file first, then we'll atomically replace the target file
 	// with the temp file.
 	dir, file := filepath.Split(filename)
@@ -52,15 +92,29 @@ func WriteFile(filename string, r io.Reader) (err error) {
 		return fmt.Errorf("can't close tempfile %q: %v", name, err)
 	}
 
+	var fileMode os.FileMode
+	// change default file mode for when file does not exist yet.
+	if fopts.defaultFileMode != 0 {
+		fileMode = fopts.defaultFileMode
+	}
 	// get the file mode from the original file and use that for the replacement
 	// file, too.
-	destInfo, err := os.Stat(filename)
-	if err != nil && !os.IsNotExist(err) {
-		return err
+	if fopts.keepFileMode {
+		destInfo, err := os.Stat(filename)
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		if destInfo != nil {
+			fileMode = destInfo.Mode()
+		}
 	}
-	// check for nil as one error type is allowed to happen.
-	if destInfo != nil && destInfo.Mode() != sourceInfo.Mode() {
-		if err := os.Chmod(name, destInfo.Mode()); err != nil {
+	// given file mode always takes precedence
+	if fopts.fileMode != 0 {
+		fileMode = fopts.fileMode
+	}
+	// apply possible file mode change
+	if fileMode != 0 && fileMode != sourceInfo.Mode() {
+		if err := os.Chmod(name, fileMode); err != nil {
 			return fmt.Errorf("can't set filemode on tempfile %q: %v", name, err)
 		}
 	}
