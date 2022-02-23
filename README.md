@@ -1,6 +1,8 @@
 # atomic
-    import "github.com/natefinch/atomic"
-atomic is a go package for atomic file writing
+
+Go package for atomic file writing
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/natefinch/atomic.svg)](https://pkg.go.dev/github.com/natefinch/atomic)
 
 By default, writing to a file in go (and generally any language) can fail
 partway through... you then have a partially written file, which probably was
@@ -25,11 +27,30 @@ change either file.
 
 ## func WriteFile
 ``` go
-func WriteFile(filename string, r io.Reader) (err error)
+func WriteFile(filename string, r io.Reader, opts ...Option) (err error)
 ```
 WriteFile atomically writes the contents of r to the specified filepath.  If
 an error occurs, the target file is guaranteed to be either fully written, or
 not written at all.  WriteFile overwrites any file that exists at the
 location (but only if the write fully succeeds, otherwise the existing file
-is unmodified).
+is unmodified).  Additional option arguments can be used to change the
+default configuration for the target file.
 
+
+## Example
+
+``` go
+import (
+	"strings"
+
+	"github.com/natefinch/atomic"
+)
+
+func main() {
+	r := strings.NewReader("yes\n")
+	err := atomic.WriteFile("consistent.txt", r, atomic.FileMode(0440))
+	if err != nil {
+		// handle error
+	}
+}
+```

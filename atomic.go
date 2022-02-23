@@ -9,32 +9,34 @@ import (
 	"path/filepath"
 )
 
+// FileOptions define the behaviour of `FileWrite()`.
 type FileOptions struct {
 	defaultFileMode os.FileMode
 	fileMode        os.FileMode
 	keepFileMode    bool
 }
 
+// Option functions modify FileOptions.
 type Option func(*FileOptions)
 
-// FileMode can be given as an argument to `WriteFile()` to change the file
-// mode to the desired value.
+// FileMode sets the file mode to the desired value and has precedence over all
+// other options.
 func FileMode(mode os.FileMode) Option {
 	return func(opts *FileOptions) {
 		opts.fileMode = mode
 	}
 }
 
-// DefaultFileMode can be given as an argument to `WriteFile()` to change the
-// file mode from the default value of ioutil.TempFile() (`0600`).
+// DefaultFileMode sets the default file mode instead of using the
+// `ioutil.TempFile()` default of `0600`.
 func DefaultFileMode(mode os.FileMode) Option {
 	return func(opts *FileOptions) {
 		opts.defaultFileMode = mode
 	}
 }
 
-// KeepFileMode() can be given as an argument to `WriteFile()` to keep the file
-// mode of an existing file instead of using the default value.
+// KeepFileMode preserves the file mode of an existing file instead of using the
+// default value.
 func KeepFileMode(keep bool) Option {
 	return func(opts *FileOptions) {
 		opts.keepFileMode = keep
@@ -45,7 +47,8 @@ func KeepFileMode(keep bool) Option {
 // an error occurs, the target file is guaranteed to be either fully written, or
 // not written at all.  WriteFile overwrites any file that exists at the
 // location (but only if the write fully succeeds, otherwise the existing file
-// is unmodified).
+// is unmodified).  Additional option arguments can be used to change the
+// default configuration for the target file.
 func WriteFile(filename string, r io.Reader, opts ...Option) (err error) {
 	// original behaviour is to preserve the mode of an existing file.
 	fopts := &FileOptions{
