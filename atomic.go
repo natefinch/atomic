@@ -22,7 +22,13 @@ func WriteFile(filename string, r io.Reader) (err error) {
 		dir = "."
 	}
 
-	f, err := ioutil.TempFile(dir, file)
+	// Keep the temporary basename short and distinct from the destination,
+	// including on case-insensitive filesystems.
+	prefix := ".atomic-"
+	if len(file) > 0 && file[0] == '.' {
+		prefix = "atomic-"
+	}
+	f, err := ioutil.TempFile(dir, prefix)
 	if err != nil {
 		return fmt.Errorf("cannot create temp file: %v", err)
 	}
